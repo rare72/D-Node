@@ -1,0 +1,7 @@
+# requirements.txt
+
+# For SSH connectivity in Python scripts
+paramiko==3.4.0
+
+# For running Ansible playbooks
+ansible==9.5.1

@@ -1,0 +1,57 @@
+# harden_server.yml
+---
+- name: D-Node | Harden Server Baseline
+  hosts: all
+  become: yes # Use sudo to execute tasks
+  tasks:
+    - name: 1. Update all packages to the latest version
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+        force_apt_get: yes
+      tags:
+        - packages
+
+    - name: 2. Remove non-essential and insecure packages
+      ansible.builtin.apt:
+        name:
+          - telnetd   # Insecure remote access
+          - rsh-server  # Insecure remote shell
+        state: absent
+        purge: yes # Also remove configuration files
+      tags:
+        - packages
+
+    - name: 3. Disable and stop uncommon services
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - avahi-daemon # Often unnecessary for servers
+        - cups         # Printing service
+      ignore_errors: yes # Ignore if a service doesn't exist
+      tags:
+        - services
+
+    - name: 4. Ensure the Uncomplicated Firewall (UFW) is installed
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+      tags:
+        - firewall
+
+    - name: 5. Enable UFW and deny all incoming traffic by default
+      community.general.ufw:
+        state: enabled
+        policy: deny
+      tags:
+        - firewall
+
+    - name: 6. Allow essential traffic (SSH) through the firewall
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+      tags:
+        - firewall
