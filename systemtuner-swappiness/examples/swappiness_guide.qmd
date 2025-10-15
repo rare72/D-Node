@@ -1,0 +1,196 @@
+---
+title: "A Practical Guide to Linux Swappiness"
+format: gfm
+---
+
+## 1. High-Level Description
+
+Swappiness is a critical Linux kernel parameter that dictates how aggressively the system uses swap space. Swap space is a portion of a hard drive designated to act as virtual RAM. When physical RAM (Random Access Memory) is full, the kernel moves inactive memory pages (chunks of memory) from RAM to the swap space to free up physical memory for active processes. The `vm.swappiness` value ranges from 0 to 100 and represents a percentage. A high value (e.g., 60-100) means the kernel will swap memory pages to disk frequently, which can be detrimental for performance-sensitive applications like databases that rely on fast memory access. A low value (e.g., 0-10) instructs the kernel to avoid swapping as much as possible, prioritizing keeping application data in the much faster physical RAM and only swapping when absolutely necessary to avoid out-of-memory errors.
+
+---
+
+## 2. Mermaid Diagrams
+
+### Diagram 1: High Swappiness (Aggressive)
+
+```mermaid
+graph TD
+    A["High Memory Pressure"] --> B{"vm.swappiness = 60"};
+    B --> C["Kernel aggressively moves inactive pages from RAM to Swap"];
+    C --> D["Frees up RAM quickly"];
+    C --> E["Slower disk I/O for swapped pages"];
+```
+
+### Diagram 2: Low Swappiness (Lazy)
+
+```mermaid
+graph TD
+    A["High Memory Pressure"] --> B{"vm.swappiness = 10"};
+    B --> C["Kernel prefers to drop file-backed cache pages over swapping"];
+    C --> D["Keeps application memory in RAM longer"];
+    D --> E["Swaps only when critical to avoid OOM"];
+```
+
+### Diagram 3: Script Logic Flowchart (`set_swappiness.sh`)
+
+```mermaid
+graph TD
+    Start["Start"] --> CheckFile{"Check for 'vm.swappiness' in /etc/sysctl.conf"};
+    CheckFile -- "Exists" --> Update["Update line to 'vm.swappiness = 15'"];
+    CheckFile -- "Does not exist" --> Append["Append 'vm.swappiness = 15' to file"];
+    Update --> Apply["Run 'sysctl -p' to apply changes"];
+    Append --> Apply;
+    Apply --> End["End"];
+```
+
+### Diagram 4: Kernel Concept - Userspace vs. Kernel Space
+
+```mermaid
+graph TD
+    subgraph "Userspace"
+        App1["Application 1 (e.g., Database)"]
+        App2["Application 2 (e.g., Web Server)"]
+    end
+    subgraph "Kernel Space"
+        Syscall["System Call Interface"]
+        MM["Memory Management"]
+        FS["File System"]
+        Net["Networking Stack"]
+    end
+    App1 --> Syscall;
+    App2 --> Syscall;
+    Syscall --> MM;
+    Syscall --> FS;
+    Syscall --> Net;
+```
+
+### Diagram 5: Kernel Concept - Role of the Memory Management Unit (MMU)
+
+```mermaid
+graph TD
+    CPU["CPU"] --> MMU["Memory Management Unit (MMU)"];
+    MMU -- "Virtual Address" --> RAM["Physical RAM"];
+    MMU -- "Page Fault (if not in RAM)" --> Kernel["Kernel"];
+    Kernel --> Swap["Swap Space on Disk"];
+    Swap --> Kernel;
+    Kernel --> RAM;
+```
+
+---
+
+## 3. Practical Examples
+
+### Swappiness Management (1-15)
+
+1.  **Check the current swappiness value:**
+    ```bash
+    cat /proc/sys/vm/swappiness
+    ```
+
+2.  **Temporarily change the swappiness value (resets on reboot):**
+    ```bash
+    sudo sysctl vm.swappiness=10
+    ```
+
+3.  **Make the swappiness value persistent (basic):**
+    ```bash
+    echo 'vm.swappiness = 15' | sudo tee -a /etc/sysctl.conf
+    ```
+
+4.  **Verify the persistent setting was added:**
+    ```bash
+    grep vm.swappiness /etc/sysctl.conf
+    ```
+
+5.  **Apply persistent settings without rebooting:**
+    ```bash
+    sudo sysctl -p
+    ```
+
+6.  **Find all sysctl settings related to memory:**
+    ```bash
+    sudo sysctl -a | grep vm
+    ```
+
+7.  **Set swappiness to 0 to only swap to avoid out-of-memory:**
+    ```bash
+    sudo sysctl vm.swappiness=0
+    ```
+
+8.  **Create a backup of your sysctl.conf before editing:**
+    ```bash
+    sudo cp /etc/sysctl.conf /etc/sysctl.conf.bak
+    ```
+
+9.  **Use `sed` to update an existing swappiness value:**
+    ```bash
+    # Changes a line like "vm.swappiness = 60" to "vm.swappiness = 10"
+    sudo sed -i 's/vm.swappiness = .*/vm.swappiness = 10/' /etc/sysctl.conf
+    ```
+
+10. **Check if any swap is currently being used:**
+    ```bash
+    swapon --show
+    ```
+
+11. **Get a detailed report on memory and swap usage:**
+    ```bash
+    free -h
+    ```
+
+12. **Disable all swap devices:**
+    ```bash
+    sudo swapoff -a
+    ```
+
+13. **Enable all swap devices listed in `/etc/fstab`:**
+    ```bash
+    sudo swapon -a
+    ```
+
+14. **Comment out the swappiness line in `sysctl.conf` to use the default:**
+    ```bash
+    # Prepend a '#' to the line
+    sudo sed -i '/^vm.swappiness/s/^/#/' /etc/sysctl.conf
+    ```
+
+15. **Restore the original `sysctl.conf` from a backup:**
+    ```bash
+    sudo mv /etc/sysctl.conf.bak /etc/sysctl.conf
+    ```
+
+### Related System Tools (16-21)
+
+16. **`sysctl`: Display all current kernel parameters:**
+    ```bash
+    sudo sysctl -a
+    ```
+
+17. **`vmstat`: Report virtual memory statistics (e.g., every 2 seconds):**
+    ```bash
+    # Look at 'si' (swap in) and 'so' (swap out) columns
+    vmstat 2
+    ```
+
+18. **`top`: Monitor processes and memory usage in real-time:**
+    ```bash
+    top
+    ```
+
+19. **`htop`: An interactive alternative to `top` for process viewing:**
+    ```bash
+    # Often needs to be installed first: sudo apt install htop
+    htop
+    ```
+
+20. **`iostat`: Monitor disk I/O to see if swapping is causing a bottleneck:**
+    ```bash
+    # Often needs to be installed first: sudo apt install sysstat
+    iostat -d -x 2
+    ```
+
+21. **`sar`: Collect and report system activity, including swapping stats:**
+    ```bash
+    # Shows swapping statistics for the current day
+    sar -S
+    ```

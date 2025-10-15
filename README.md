@@ -46,6 +46,18 @@ D-Node provides a holistic approach to automation, starting with a secure founda
 
 -----
 
+## Featured Projects
+
+### SystemTuner-Swappiness
+
+This project provides a script and an Ansible playbook to automate the adjustment of kernel swappiness on a Linux system. The goal is to reduce the system's tendency to swap, thereby improving performance for memory-intensive applications.
+
+*   **Purpose**: Optimize memory performance by tuning the `vm.swappiness` kernel parameter.
+*   **Tools**: Bash script, Ansible playbook.
+*   **Learn More**: [View the Project README](./systemtuner-swappiness/README.md)
+
+-----
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running to harden your first node.
