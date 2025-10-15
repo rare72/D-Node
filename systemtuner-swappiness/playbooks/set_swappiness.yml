@@ -1,0 +1,11 @@
+---
+- name: Set Swappiness Value
+  hosts: all
+  become: yes
+  tasks:
+    - name: Set vm.swappiness to 15
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: '15'
+        state: present
+        reload: yes
